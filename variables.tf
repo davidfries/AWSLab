@@ -16,11 +16,11 @@ variable "name" {
 variable "ip" {
   description = "Value of the name for client public IP"
   type        = string
-  default     = "97.118.135.238/32"
+  default     = "108.68.92.6/32"
 }
 variable "PATH_TO_PRIVATE_KEY" { default = "C:\\Users\\DJ\\Downloads\\dn.pem" }
 variable "PATH_TO_PUBLIC_KEY" { default = "mykey.pub" }
-variable "bucketname" {default = "djf-logging-bucket"}
+variable "bucketname" { default = "djf-logging-bucket2" }
 variable "region" {
-  default="us-east-1"
+  default = "us-east-1"
 }
