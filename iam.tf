@@ -26,18 +26,38 @@ resource "aws_iam_role" "state" {
 
   assume_role_policy = <<EOF
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "states.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": ""
-    }
-  ]
+	"Version": "2012-10-17",
+	"Statement": [{
+		"Action": "sts:AssumeRole",
+		"Principal": {
+			"Service": "states.amazonaws.com"
+		},
+		"Effect": "Allow",
+		"Sid": ""
+	}]
 }
+EOF
+
+  tags = {
+    tag-key = "tag-value"
+  }
+}
+resource "aws_iam_role" "ssmsend" {
+  name = "ssmsend"
+
+  assume_role_policy = <<EOF
+{
+	"Version": "2012-10-17",
+	"Statement": [{
+		"Action": "sts:AssumeRole",
+		"Principal": {
+			"Service": "ssm.amazonaws.com"
+		},
+		"Effect": "Allow",
+		"Sid": ""
+	}]
+}
+
 EOF
 
   tags = {

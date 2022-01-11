@@ -12,6 +12,13 @@ terraform {
 provider "aws" {
   profile = "default"
   region  = var.region
+  default_tags {
+    tags={
+      BKP="YES"
+      Environment="DEV"
+      Provider="Terraform"
+    }
+  }
 }
 
 resource "aws_security_group" "allow-rdp" {
@@ -63,7 +70,7 @@ resource "aws_instance" "app_server" {
   key_name               = "dn"
   tags = {
     Name = var.name,
-    Bkp  = "always"
+    BKP="YES"
   }
 }
 resource "aws_instance" "app_server2" {
@@ -75,7 +82,7 @@ resource "aws_instance" "app_server2" {
   key_name               = "dn"
   tags = {
     Name = "Win2012",
-    Bkp  = "always"
+    BKP="YES"
   }
 }
 resource "aws_instance" "rhel1" {
@@ -84,18 +91,10 @@ resource "aws_instance" "rhel1" {
   iam_instance_profile   = aws_iam_instance_profile.test_profile.name
   vpc_security_group_ids = ["${aws_security_group.allow-rdp.id}", "${aws_security_group.allow-ssh.id}"]
   key_name               = "dn"
-  user_data              = <<EOF
-  #!/bin/bash
-  cd /tmp
-  sudo dnf install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
-  sudo systemctl enable amazon-ssm-agent
-  sudo systemctl start amazon-ssm-agent
-
-
-  EOF
+  user_data              = file("./script.sh")
   tags = {
     Name = "Linux",
-    Bkp  = "always"
+    BKP="YES"
   }
 }
 resource "aws_s3_bucket" "b" {
@@ -173,21 +172,9 @@ resource "aws_sfn_state_machine" "sfn_state_machine" {
         "OutputS3KeyPrefix": "",
         "OutputS3Region": "us-east-1",
         "Parameters": {
-          "string": [
-            {
-              "workingDirectory": [
-                ""
-              ],
-              "executionTimeout": [
-                "3600"
-              ],
-              "commands": [
-                "sudo systemctl restart solserver"
-              ]
-            }
-          ]
+          "commands":["sudo systemctl restart solserver"]
         },
-        "ServiceRoleArn": "${aws_iam_role.state.arn}",
+        
         "Targets": [
           {
             "Key": "InstanceIds",
@@ -205,6 +192,59 @@ resource "aws_sfn_state_machine" "sfn_state_machine" {
 }
 EOF
 }
+# resource "aws_iam_role" "bkp" {
+#   name               = "bkp"
+#   assume_role_policy = <<POLICY
+# {
+#   "Version": "2012-10-17",
+#   "Statement": [
+#     {
+#       "Action": ["sts:AssumeRole"],
+#       "Effect": "allow",
+#       "Principal": {
+#         "Service": ["backup.amazonaws.com"]
+#       }
+#     }
+#   ]
+# }
+# POLICY
+# }
+
+# resource "aws_iam_role_policy_attachment" "bkp" {
+#   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+#   role       = aws_iam_role.bkp.name
+# }
+
+# resource "aws_backup_selection" "bkpsel" {
+#   plan_id      = aws_backup_plan.example.id
+#   name = "backup"
+#   selection_tag {
+#     type  = "STRINGEQUALS"
+#     key   = "BKP"
+#     value = "YES"
+#   }
+#   iam_role_arn = aws_iam_role.bkp.arn
+# }
+# resource "aws_backup_vault" "example" {
+#   name        = "example_backup_vault"
+# }
+# resource "aws_backup_plan" "example" {
+#   name = "tf_example_backup_plan"
+
+#   rule {
+#     rule_name         = "tf_example_backup_rule"
+#     target_vault_name = aws_backup_vault.example.name
+#     schedule          = "cron(0 0 1 * * ?)"
+#   }
+
+#   advanced_backup_setting {
+#     backup_options = {
+#       WindowsVSS = "enabled"
+#     }
+#     resource_type = "EC2"
+#   }
+# }
+
 # resource "aws_launch_template" "wintemp" {
 #   name_prefix   = "wintemp"
 #   image_id      = var.ami
